@@ -2,13 +2,13 @@ library(readxl)
 library(dplyr)
 
 # importing data into memory
-df.cctvTotal <- read.csv(file='~/Documents/GitHub/fcdc-overflow-project-1/data/seoul-cctv/seoul_cctv.csv'); colnames(df.cctvTotal) <- c('area','total','2013','2014','2015','2016')
+df.cctvTotal <- read.csv(file='~/Documents/GitHub/fcdc-overflow-project-1/raw-data/seoul-cctv/seoul_cctv.csv'); colnames(df.cctvTotal) <- c('area','total','2013','2014','2015','2016')
 df.cctvIncTotal <- df.cctvTotal; for(i in 4:6) { df.cctvIncTotal[i] <- df.cctvIncTotal[i-1] + df.cctvIncTotal[i] }
 df.cctvIncProb <- df.cctvIncTotal; for(i in 4:6) { df.cctvIncProb[i] <- round(((df.cctvIncTotal[i]-df.cctvIncTotal[i-1])/df.cctvIncTotal[i]), digits = 3) }
-df.crime2013 <- read_excel(path='~/Documents/GitHub/fcdc-overflow-project-1/data/seoul-crime/2013.xlsx'); colnames(df.crime2013) <- c('area','classification','occurORarrest','freq')
-df.crime2014 <- read_excel(path='~/Documents/GitHub/fcdc-overflow-project-1/data/seoul-crime/2014.xlsx'); colnames(df.crime2013) <- c('area','classification','occurORarrest','freq')
-df.crime2015 <- read_excel(path='~/Documents/GitHub/fcdc-overflow-project-1/data/seoul-crime/2015.xlsx'); colnames(df.crime2013) <- c('area','classification','occurORarrest','freq')
-df.crime2016 <- read_excel(path='~/Documents/GitHub/fcdc-overflow-project-1/data/seoul-crime/2016.xlsx'); colnames(df.crime2013) <- c('area','classification','occurORarrest','freq')
+df.crime2013 <- read_excel(path='~/Documents/GitHub/fcdc-overflow-project-1/raw-data/seoul-crime/2013.xlsx'); colnames(df.crime2013) <- c('area','classification','occurORarrest','freq')
+df.crime2014 <- read_excel(path='~/Documents/GitHub/fcdc-overflow-project-1/raw-data/seoul-crime/2014.xlsx'); colnames(df.crime2013) <- c('area','classification','occurORarrest','freq')
+df.crime2015 <- read_excel(path='~/Documents/GitHub/fcdc-overflow-project-1/raw-data/seoul-crime/2015.xlsx'); colnames(df.crime2013) <- c('area','classification','occurORarrest','freq')
+df.crime2016 <- read_excel(path='~/Documents/GitHub/fcdc-overflow-project-1/raw-data/seoul-crime/2016.xlsx'); colnames(df.crime2013) <- c('area','classification','occurORarrest','freq')
 
 # testing
 df.temp <- modify_crime_df(df.crime2013,c('강간','절도'),'발생')
