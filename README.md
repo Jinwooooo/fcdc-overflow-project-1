@@ -4,6 +4,7 @@
 Topic : How CCTV affects Social Factors in Seoul
 
 Independent Var : CCTV
+
 Dependent Var : Crime rate / Female ~ Elder Population Proportion / Family Size / etc (as much as we can handle)
 
 
@@ -16,6 +17,9 @@ Dependent Var : Crime rate / Female ~ Elder Population Proportion / Family Size 
 
 ## Group Members
 -정진우
+
 -이경아
+
 -차유진
+
 -현경근
