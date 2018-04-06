@@ -1,11 +1,11 @@
 # Fast Campus - R Data Camp - Analysis Project
 > Team Overflow
 
-Topic : How CCTV affects Social Factors in Seoul
+**Topic : How Crime Rate affects ? in Seoul**
 
-Independent Var : CCTV
+Dependent Variable : Crime rate
 
-Dependent Var : Crime rate / Female ~ Elder Population Proportion / Family Size / etc (as much as we can handle)
+Independent Variable : CCTV / Female ~ Elder Population Ratio / etc
 
 
 ## Data Used
@@ -16,10 +16,7 @@ Dependent Var : Crime rate / Female ~ Elder Population Proportion / Family Size 
 --- need to add later ---
 
 ## Group Members
--정진우
-
--이경아
-
--차유진
-
--현경근
+Markup : * 정진우
+         * 이경아
+         * 차유진
+         * 현경근
