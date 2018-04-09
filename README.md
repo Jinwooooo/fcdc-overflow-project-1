@@ -1,22 +1,23 @@
 # Fast Campus - R Data Camp - Analysis Project
 > Team Overflow
 
-**Topic : How Crime Rate affects ? in Seoul**
+**Topic : How Happiness Score is affected by Economic and Social factors**
 
-Dependent Variable : Crime rate
+Dependent Variable : Happiness Score
 
-Independent Variable : CCTV / Female ~ Elder Population Ratio / etc
-
-
-## Data Used
---- need urls and what the data are ---
-
+Independent Variable : EconomyGDP, Family, LifeExpectancy, Freedom, GovernmentCorruption, Generosity, DystopiaResidual
 
 ## Abstract
 --- need to add later ---
 
+## Tools
+* RStudio
+
+## Data Used
+Basic Data - <https://www.kaggle.com/unsdsn/world-happiness/data>
+
 ## Group Members
-Markup : * 정진우
-         * 이경아
-         * 차유진
-         * 현경근
+* 정진우
+* 이경아
+* 차유진
+* 현경근
