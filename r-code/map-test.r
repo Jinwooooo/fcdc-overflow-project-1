@@ -1,6 +1,7 @@
 library(highcharter)
 library(dplyr)
 library(purrr)
+library(readr)
 
 mapdata <- get_data_from_map(download_map_data('custom/world-continents'))
 
@@ -38,21 +39,9 @@ df.continent <- data_frame(
   code = mapdata$name,
   value = happiness.continent
 )
-df.continent2 <- data_frame(
-  name = mapdata$name,
-  y = happiness.continent
-)
 
 hcmap("custom/world-continents", data = df.continent, value = "value",
       joinBy = c('name','code'), name = 'Happiness Score',
       dataLabels = list(enabled = TRUE, format = '{point.name}'),
       borderColor = "#000000", borderWidth = 0.1,
       tooltip = list(valueDecimals = 3))
-
-highchart() %>% 
-  hc_chart(type='map') %>% 
-  hc_title(text='Drilldown by Happiness Score for Regions') %>% 
-  hc_xAxis(type='category') %>% 
-  hc_legend(enabled=FALSE) %>% 
-  hc_plotOptions(series=list(borderWidth=0,dataLabels=list(enabled=TRUE))) %>%
-  hc_add_series(data=df.continent2, name="Happiness Score",colorByPoint=TRUE)

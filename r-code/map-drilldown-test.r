@@ -5,10 +5,10 @@ library(pacman)
 pacman::p_load(tidyr, highcharter, dplyr, rjson)
 
 # reading 2015 happiness data file
-df <- readr::read_csv(file='~/Documents/GitHub/fcdc-overflow-project-1/data-raw/2015.csv')
-reset.var <- c('Country','Region','HappinessRank','HappinessScore','StandardError','EconomyGDP','Family','LifeExpectancy'
-               ,'Freedom','GovernmentCorruption','Generosity','DystopiaResidual')
-colnames(df) <- reset.var
+# df <- readr::read_csv(file='~/Documents/GitHub/fcdc-overflow-project-1/data-raw/2015.csv')
+# reset.var <- c('Country','Region','HappinessRank','HappinessScore','StandardError','EconomyGDP','Family','LifeExpectancy'
+#                ,'Freedom','GovernmentCorruption','Generosity','DystopiaResidual')
+# colnames(df) <- reset.var
 
 # reading geo json file
 json.continent <- 'https://raw.githubusercontent.com/Jinwooooo/fcdc-overflow-project-1/master/data-raw/continents.json'
@@ -31,16 +31,11 @@ json_get_feature_properties <- function(df) {
   return(result.list)
 }
 
+list.continent <- json_get_feature_properties(geo.continent)[1:6]
 
 highchart(type = 'map') %>%
-  hc_add_series(
-    mapData = geo.continent,
-    borderWidth = 0.8, dataLabels = list(enabled = TRUE, format = '{point.properties.postalcode}'),
-    tooltip = list( 
-      useHTML = TRUE
-    )) %>%
+  hc_add_series(mapData = usgeojson, borderWidth = 0.8, tooltip = list(useHTML = TRUE)) %>%
   hc_title('test') %>%
   hc_colorAxis(colors = c("red", "#1874CD")) %>%
   hc_legend(enabled = FALSE) %>%
   hc_exporting(enabled = TRUE)
-
