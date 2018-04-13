@@ -44,9 +44,16 @@ ___
 
 독립변수 (Independent Variable)
 
-:    xxx
+:    - log(GDP per capital)
+     - Social Support
+     - Perception of Corruption
+     - Positive Affect
+     - Negative Affect
+     - Confidence in Government
+     - Gini House Hold Income
 
-###자세한 보고 (Elaborated Report) : <url>
+
+### 자세한 보고 (Elaborated Report) : <https://github.com/Jinwooooo/fcdc-overflow-project-1/blob/master/report.html>
 ___
 ## 도구 (Tools)
 * RStudio
