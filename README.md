@@ -34,23 +34,23 @@ ___
 
 주제 (Topic)
 
-:    경제적 및 사회적인 요인이 국가의 행복지수에 대한 영향 및 연관성
+    경제적 및 사회적인 요인이 국가의 행복지수에 대한 영향 및 연관성
 (How 'Life Ladder' is affected by Economic and Social Factors).
 
 
 종족변수 (Dependent Variable)
 
-:    Life Ladder (설문조사 자료 / Poll Value)
+    Life Ladder (설문조사 자료 / Poll Value)
 
 독립변수 (Independent Variable)
 
-:    - log(GDP per capital)
-     - Social Support
-     - Perception of Corruption
-     - Positive Affect
-     - Negative Affect
-     - Confidence in Government
-     - Gini House Hold Income
+    - log(GDP per capital)
+    - Social Support
+    - Perception of Corruption
+    - Positive Affect
+    - Negative Affect
+    - Confidence in Government
+    - Gini House Hold Income
 
 
 ### 자세한 보고 (Elaborated Report) : <https://github.com/Jinwooooo/fcdc-overflow-project-1/blob/master/report.html>
