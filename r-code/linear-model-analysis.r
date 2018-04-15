@@ -1,12 +1,11 @@
 # importing libraries to local memory
-# install.packages('pacman')
 library(pacman)
-pacman::p_load(readr,readxl,dplyr,GGally,gvlma,data.table,car,ggplot2,lm.beta,
-               corrplot,dplyr,MASS,Hmisc,r2glmm,olsrr,DAAG)
+pacman::p_load(readr,dplyr,gvlma,data.table,car,ggplot2,lm.beta,
+               corrplot,dplyr,MASS,Hmisc,r2glmm,olsrr,DAAG,highcharter)
 
 # Import data
-df <- readxl::read_excel(path='~/Documents/GitHub/fcdc-overflow-project-1/data-raw/WHR2018Chapter2OnlineData.xls',
-                         sheet=1,col_names=TRUE)
+df <- data.table::fread('https://raw.githubusercontent.com/Jinwooooo/fcdc-overflow-project-1/master/data/raw-data.csv')
+df$V1 <- NULL
 
 # Remove white space in column names
 reset.col <- c('country','year','life.ladder','log.gdp.per.cap','social.support','healthy.life.expectancy.at.birth',
@@ -17,10 +16,16 @@ colnames(df) <- reset.col
 
 # Removing unused columns and filling na values with mean values (in order to actually use values as predict at the end)
 df.main <- df %>%
-  dplyr::select(-c(democratic.quality, delivery.quality, sd.of.ladder.by.country, sd.mean.ladder.by.country, gini.index)) %>% 
+  dplyr::select(-c(sd.of.ladder.by.country, sd.mean.ladder.by.country)) %>% 
   dplyr::group_by(year) %>% 
+  dplyr::mutate_at(vars(-country),funs(replace(., which(is.nan(.)), mean(., na.rm = TRUE)))) %>%
+  dplyr::mutate_at(vars(-country), funs(replace(., which(is.na(.)), mean(., na.rm = TRUE))))
+
+df.main <- df.main %>% 
+  dplyr::group_by(country) %>%
   dplyr::mutate_all(funs(replace(., which(is.nan(.)), mean(., na.rm = TRUE)))) %>% 
   dplyr::mutate_all(funs(replace(., which(is.na(.)), mean(., na.rm = TRUE))))
+
 df.main$gini.house.hold.income <- Hmisc::impute(df.main$gini.house.hold.income,mean)
 # [debug] : checking for na values
 # colSums(is.na(df.main))
@@ -29,7 +34,14 @@ df.main$gini.house.hold.income <- Hmisc::impute(df.main$gini.house.hold.income,m
 ggplot2::ggplot(df.main, aes(x = year, y = life.ladder, group = year)) + ggplot2::geom_boxplot()
 ggplot2::ggplot(df.main, aes(x = year, y = log.gdp.per.cap, group = year)) + ggplot2::geom_boxplot()
 # to see if it's somewhere near normal distribution
-hist(df.main$life.ladder)
+ggplot2::ggplot(df.main, aes(life.ladder)) +
+  ggplot2::geom_histogram(aes(y = ..density..),
+                          bins = 20,
+                          col = 4,
+                          fill = "blue", 
+                          alpha = 0.4) +
+  ggplot2::geom_density(col = 6) +
+  ggplot2::labs(x = "life.ladder", y = "count")
 
 # Split into train and test data
 df.train <- df.main %>% dplyr::filter(year >= 2005 & year <= 2014)
@@ -44,6 +56,117 @@ df.test.mean <- df.test %>%
   dplyr::group_by(country) %>%
   dplyr::summarise_all(funs(mean(., na.rm = TRUE))) %>% 
   dplyr::select(-country)
+
+# EDA
+df.train.map <- df.train %>% 
+  dplyr::group_by(country) %>%
+  dplyr::summarise_all(funs(mean(., na.rm = TRUE))) %>% 
+  dplyr::select(-year)
+
+# data is from highcharter map library, the grouping for continents were off, but wasn't a problem in overall EDA
+af.data <- list(region='Africa',
+                country=(get_data_from_map(download_map_data('custom/africa')))$name)
+asia.data <- list(region='Asia',
+                  country=(get_data_from_map(download_map_data('custom/asia')))$name)
+eu.data <- list(region='Europe',
+                country=(get_data_from_map(download_map_data('custom/europe')))$name)
+na.data <- list(region='North America',
+                country=(get_data_from_map(download_map_data('custom/north-america')))$name)
+oc.data <- list(region='Oceania',
+                country=(get_data_from_map(download_map_data('custom/oceania')))$name)
+sa.data <- list(region='South America',
+                country=(get_data_from_map(download_map_data('custom/south-america')))$name)
+
+world.data <- Reduce(function(x, y) merge(x, y, all=TRUE), 
+                     list(af.data, asia.data, eu.data, na.data, oc.data, sa.data))
+
+# values that are different were brute force searched and then substituted
+# missing.countries <- (df.train.map[!(df.train.map$country %in% map.data$name),])[,1]
+# excluded.countries <- (map.data[!(map.data$name %in% df.train.map$country),])$name
+df.train.map[df.train.map$country == "Congo (Brazzaville)",1] = 'Democratic Republic of the Congo'
+df.train.map[df.train.map$country == "Congo (Kinshasa)",1] = 'Republic of Congo'
+df.train.map[df.train.map$country == "North Cyprus",1] = 'Northern Cyprus'
+df.train.map[df.train.map$country == "Serbia",1] = 'Republic of Serbia'
+df.train.map[df.train.map$country == "Somaliland region",1] = 'Somaliland'
+df.train.map[df.train.map$country == "Taiwan Province of China",1] = 'Taiwan'
+df.train.map[df.train.map$country == "Tanzania",1] = 'United Republic of Tanzania'
+df.train.map[df.train.map$country == "United States",1] = 'United States of America'
+
+df.final <- merge(df.train.map, world.data, by='country', all.x=TRUE)
+df.final$region <- as.character(df.final$region)
+
+region.happiness <- c()
+for(i in unique(df.final$region)) {
+  summary <- df.final[df.final$region == i,]
+  region.happiness <- c(region.happiness,round(mean(summary$life.ladder,na.rm=TRUE),digits=3))
+}
+
+df.outer <- (data_frame(name = unique(df.final$region),
+                        y = round(region.happiness,digits=3),
+                        drilldown=tolower(unique(df.final$region))))[1:6,]
+df.outer <- df.outer[order(df.outer$y, decreasing=TRUE),]
+
+hc <- highchart() %>% 
+  hc_chart(type='column') %>% 
+  hc_title(text='Drilldown by Life Ladder for Regions') %>% 
+  hc_xAxis(type='category') %>% 
+  hc_legend(enabled=FALSE) %>% 
+  hc_plotOptions(series=list(borderWidth=0,dataLabels=list(enabled=TRUE))) %>%
+  hc_add_series(data=df.outer, name="Life Ladder",colorByPoint=TRUE)
+
+africa <- df.final[df.final$region == 'Africa',][c('country','life.ladder')]
+colnames(africa) <- c('name','value')
+africa <- africa[!is.na(africa$name),]
+africa <- africa[order(africa$value,decreasing=TRUE),]
+africa$value <- round(africa$value, digits=3)
+asia <- df.final[df.final$region == 'Asia',][c('country','life.ladder')]
+colnames(asia) <- c('name','value')
+asia <- asia[!is.na(asia$name),]
+asia <- asia[order(asia$value,decreasing=TRUE),]
+asia$value <- round(asia$value, digits=3)
+europe <- df.final[df.final$region == 'Europe',][c('country','life.ladder')]
+colnames(europe) <- c('name','value')
+europe <- europe[!is.na(europe$name),]
+europe <- europe[order(europe$value,decreasing=TRUE),]
+europe$value <- round(europe$value, digits=3)
+north.america <- df.final[df.final$region == 'North America',][c('country','life.ladder')]
+colnames(north.america) <- c('name','value')
+north.america <- north.america[!is.na(north.america$name),]
+north.america <- north.america[order(north.america$value,decreasing=TRUE),]
+north.america$value <- round(north.america$value, digits=3)
+oceania <- df.final[df.final$region == 'Oceania',][c('country','life.ladder')]
+colnames(oceania) <- c('name','value')
+oceania <- oceania[!is.na(oceania$name),]
+oceania <- oceania[order(oceania$value,decreasing=TRUE),]
+oceania$value <- round(oceania$value, digits=3)
+south.america <- df.final[df.final$region == 'South America',][c('country','life.ladder')]
+colnames(south.america) <- c('name','value')
+south.america <- south.america[!is.na(south.america$name),]
+south.america <- south.america[order(south.america$value,decreasing=TRUE),]
+south.america$value <- round(south.america$value, digits=3)
+
+hc %>%
+  hc_drilldown(allowPointDrilldown = TRUE,
+               series = list(
+                 list(id = 'africa', data = list_parse2(africa)),
+                 list(id = 'asia', data = list_parse2(asia)),
+                 list(id = 'europe', data = list_parse2(europe)),
+                 list(id = 'north america', data = list_parse2(north.america)),
+                 list(id = 'oceania', data = list_parse2(oceania)),
+                 list(id = 'south america', data = list_parse2(south.america))
+               )
+  )
+
+# due to too many maps, other variables have been exlcuded from this report
+# for other map visualization on other variables that's not life.ladder, see map-visualization.r file
+map.life.ladder <- hcmap("custom/world-robinson-highres", data = df.train.map, value = "life.ladder",
+                         joinBy = c('name','country'), name = 'Life Ladder',
+                         dataLabels = list(enabled = TRUE, format = '{point.name}'),
+                         borderColor = "#000000", borderWidth = 0.1,
+                         tooltip = list(valueDecimals = 3),
+                         nullColor = '#FF0000') %>% 
+  hc_title(text = 'Life Ladder World Map')
+map.life.ladder
 
 # Initial Linear Model
 lm.train.mean <- lm(life.ladder ~. -year, data = df.train.mean)
@@ -200,6 +323,15 @@ r2glmm::r2beta(glm.train.mean2)
 #################################################################################
 # ------------------------------------ TESTING IF TIME SERIES MODEL FITS BETTER ------------------------------------ #
 
+# comparing models
+anova(lm.train.mean, lm.train.step, lm.train.step2)
+#################################################################################
+#   Res.Df  RSS Df Sum of Sq    F Pr(>F)                                        #
+# 1    152 30.6                                                                 #
+# 2    153 30.7 -1    -0.074 0.37  0.546                                        #
+# 3    155 31.8 -2    -1.086 2.70  0.071 .                                      #
+################################################################################# 
+
 # testing if there are outliers that are influencing the R^2 value
 car::outlierTest(lm.train.step2, data = df.train.mean2)
 #################################################################################
@@ -270,11 +402,12 @@ train.colnames <- colnames(df.train.mean2)
 test.colnames <- colnames(df.test.mean)
 predict.colnames <- test.colnames[train.colnames %in% test.colnames]
 
-# pred_probs1 <- predict(lm.train.step2, newdata = df.test.mean[, predict.colnames], interval = "predict")
-# pred_probs2 <- predict(lm.train.step2, newdata = df.test.mean[, predict.colnames], type = "terms")
-pred_probs3 <- predict(lm.train.step2, newdata = df.test.mean[, predict.colnames], interval = "predict", type = "response")
+pred_probs <- predict(lm.train.step2, newdata = df.test.mean[, predict.colnames], interval = "predict", type = "response")
 
-dt.pred_prob3 <- as.data.table(pred_probs3)
-dt.pred_prob3$result <- ifelse((dt.pred_prob3$lwr <= dt.pred_prob3$fit) & (dt.pred_prob3$upr >= dt.pred_prob3$fit), 1, 0)
-table(dt.pred_prob3$result)
+dt.pred_prob <- as.data.table(pred_probs)
+dt.pred_prob$result <- ifelse((dt.pred_prob$lwr <= dt.pred_prob$fit) & (dt.pred_prob$upr >= dt.pred_prob$fit), 1, 0)
+table(dt.pred_prob$result)
+
+# MSE of our model
+mean(lm.train.step2$residuals^2)
 # ------------------------------------ Predicting with the test data  ------------------------------------ #

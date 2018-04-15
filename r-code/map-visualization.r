@@ -36,8 +36,7 @@ map.life.ladder <- hcmap("custom/world-robinson-highres", data = df.train.map, v
                          borderColor = "#000000", borderWidth = 0.1,
                          tooltip = list(valueDecimals = 3),
                          nullColor = '#FF0000') %>% 
-                         hc_title(text = 'Life Ladder World Map') %>% 
-                         hc_pane(pane=0)
+                         hc_title(text = 'Life Ladder World Map')
 
 map.log.gdp.per.cap <- hcmap("custom/world-robinson-highres", data = df.train.map, value = "log.gdp.per.cap",
                           joinBy = c('name','country'), name = 'log(GDP per Capital)',
@@ -45,8 +44,7 @@ map.log.gdp.per.cap <- hcmap("custom/world-robinson-highres", data = df.train.ma
                           borderColor = "#000000", borderWidth = 0.1,
                           tooltip = list(valueDecimals = 3),
                           nullColor = '#FF0000') %>%
-                          hc_title(text = 'log(GDP per Capital) World Map') %>% 
-                          hc_pane(pane=1)
+                          hc_title(text = 'log(GDP per Capital) World Map')
 
 map.social.support <- hcmap("custom/world-robinson-highres", data = df.train.map, value = "social.support",
                                 joinBy = c('name','country'), name = 'Social Support',

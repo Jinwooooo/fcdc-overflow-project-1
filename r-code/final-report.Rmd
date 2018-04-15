@@ -1,0 +1,537 @@
+---
+title: "Final Regression Analysis Report"
+author: "차유진, 정진우, 현경근, 이경아"
+date: "4/13/2018"
+output: html_document
+---
+#세계 행복지수 데이타 회귀분석
+### Overflow: 차유진, 정진우, 현경근, 이경아
+
+# 변수 해석
+### 종속변수
+**Life Ladder:**
+설문 질문 “10이 누릴수 있는 최고의 삶이고, 0이 누릴수 있는 최저의 삶이라면, 당신의 현재 삶은 몇점인가?”의 나라별 평균 점수
+출처: Gallup World Poll
+
+### 독립변수
+**GDP (국내총생산):** 
+2011년 국제 달러 가격으로 계산한 나라별 일년동안 생산활동
+출처: World Development Indicators(WDI) (20170915)
+
+**Healthy Life Expectancy (건강 기대 수명):**
+사람의 연령별 사망률, 이환률, 기능적 건강 상태를 고려한 좋은 건강 수준에서 살아갈 수 있을 것으로 기대되는 나라별 평균 나이
+출처: World Health Organization (WHO), WDI, 여러 논문의 통계를 통해서, Global Happiness Council에서 계산
+
+**Social Support:**
+“필요하면 언제든 힘든 상황일때, 기댈수 있는 친척이나 친구분들이 있나요?” 에 관한 답변 (0 또는 1)에 국가별 평균
+출처: Gallup World Poll
+
+**Freedom to make life choices:**
+“지금 현재 본인의 삶의 선택의 자유성에 관해서 만족하나요 불만족하나요?” 에 관한 답변 (0 또는 1)에 국가별 평균
+출처: Gallup World Poll
+
+**Generosity:**
+“지난 한달 동안 자선 단체에 기부하신적이 있나요?”에 관한 국가별 평균 답변을, GDP per capita에 회귀한 잔차
+출처: Gallup World Poll, World Happiness Report
+
+**Corruption Perception:**
+“정부에 부패가 널리 퍼져있나요?”과 “사업내 비리가 널리 퍼져있나요?”에 관한 답변 (0 또는 1)의 국가별 평균
+출처: Gallup World Poll
+
+**Positive Affect:**
+“어저께 행복한 감정을 많이 느끼셨나요?”과 “어저께 웃거나 미소를 많이 지으셨나요?”과 “어저께 만족감을 많이 느끼셨나요?” 에 관한 답변 (0 또는 1)의 국가별 평균
+출처: Gallup World Poll
+
+**Negative Affect:**
+“어저께 걱정을 많이 하셨나요?”과 “어저께 슬픈 감정들을 많이 느끼셨나요?”과 “어저께 화를 많이 느끼셨나요?”의 답변 (각 0 또는 1)의 국가별 평균
+출처: Gallup World Poll
+
+**Migrant Acceptance Index (거주 이민 수용 수치):**
+다음 문장에 대해서 개인적으로 좋게 생각하나요 나쁘게 생각하나요?
+“이민들이 이 나라에서 거주하다”
+“이민들이 나의 이웃이 되다”
+“이민들의 가까운 친척과 결혼을 하다”
+“좋은것이다”는 3점, “상황마다 틀리다” 또는 “잘 모르겠다”는 1 점, “나쁜것이다”는 0 점. 수치는 3가지 답변에 총 점수이다. 세계 평균 MAI는 5.29이다
+출처: Gallup World Poll
+
+**Democratic Quality**
+WGI에서 다양한 원천 데이터를 통해 만든 Voice and Accountability (VA) 과 Political Stability and Absence of Violence/Terrorism (PV)라는 종합수치의 단순 평균. u = 0, sd = 1, -2.5 에서 2.5의 수치
+
+**VA:** 국가의 시민들이 정부를 선택 할수있는 자유, 표현의 자유, 단체 결사의 자유, 밑 언론의 자유를 통합한 수치
+
+**PV:** 정부가 헌법위반이나 폭력적인 수단 (정치적 폭력또는 테러)으로 인해서 와해될 가능성
+출처: World Governance Indicator, Global Happiness Council
+
+**Delivery Quality**
+WGI에서 다양한 원천 데이터를 통해 만든 Government Effectiveness(GE), Regulatory Quality (RQ), Rule of Law (RL), Control of Corruption (CC)라는 종합수치의 단순 평균. u = 0, sd = 1, -2.5 에서 2.5의 수치
+ 
+**GE:**
+공공서비스, 정부 업무, 정치적 압박으로부터 독립성, 정책형성, 정책집행, 정책에 관한 정부의 확약에 관한 신뢰성
+
+**RQ:** 민간부문 발전을 위한 정부의 능력에 관한 인식
+
+**RL:** 사회규정, 계약 시행, 재산권리, 경찰, 법정들의 관한 신뢰성
+
+**CC:** 개인 이익을 위한 공권력 사용 또는 정부 부패
+출처: World Governance Indicator, Global Happiness Council
+
+
+
+#데이타 핸들링 / 클리닝
+```{r}
+# suppressing warning, the warnings have been notified by our team, but was not a problem in the on overall analysis
+options(warn=-1)
+# importing libraries to local memory
+library(pacman)
+pacman::p_load(readr,dplyr,gvlma,data.table,car,ggplot2,lm.beta,
+               corrplot,dplyr,MASS,Hmisc,r2glmm,olsrr,DAAG,highcharter)
+
+# Import data
+df <- data.table::fread(paste0('https://raw.githubusercontent.com/Jinwooooo/',
+                               'fcdc-overflow-project-1/master/data/raw-data.csv'))
+df$V1 <- NULL
+
+# Remove white space in column names
+reset.col <- c('country','year','life.ladder','log.gdp.per.cap','social.support',
+               'healthy.life.expectancy.at.birth','freedom.to.make.life.choices','generosity',
+               'perception.of.corruption','positive.affect','negative.affect','confidence.in.govt',
+               'democratic.quality','delivery.quality','sd.of.ladder.by.country',
+               'sd.mean.ladder.by.country','gini.index','gini.index.past.mean',
+               'gini.house.hold.income')
+colnames(df) <- reset.col
+
+# Removing unused columns and filling na values with mean values (in order to actually use values as predict at the end)
+df.main <- df %>%
+  dplyr::select(-c(sd.of.ladder.by.country, sd.mean.ladder.by.country)) %>% 
+  dplyr::group_by(year) %>% 
+  dplyr::mutate_at(vars(-country),funs(replace(., which(is.nan(.)), mean(., na.rm = TRUE)))) %>%
+  dplyr::mutate_at(vars(-country), funs(replace(., which(is.na(.)), mean(., na.rm = TRUE))))
+
+df.main <- df.main %>% 
+  dplyr::group_by(country) %>%
+  dplyr::mutate_all(funs(replace(., which(is.nan(.)), mean(., na.rm = TRUE)))) %>% 
+  dplyr::mutate_all(funs(replace(., which(is.na(.)), mean(., na.rm = TRUE))))
+
+df.main$gini.house.hold.income <- Hmisc::impute(df.main$gini.house.hold.income,mean)
+# [debug] : checking for na values
+# colSums(is.na(df.main))
+
+# Box-whisker plot to see life ladder's mean and IQR values per year
+ggplot2::ggplot(df.main, aes(x = year, y = life.ladder, group = year)) + ggplot2::geom_boxplot()
+ggplot2::ggplot(df.main, aes(x = year, y = log.gdp.per.cap, group = year)) + ggplot2::geom_boxplot()
+# to see if it's somewhere near normal distribution
+ggplot2::ggplot(df.main, aes(life.ladder)) +
+  ggplot2::geom_histogram(aes(y = ..density..),
+                          bins = 20,
+                          col = 4,
+                          fill = "blue", 
+                          alpha = 0.4) +
+  ggplot2::geom_density(col = 6) +
+  ggplot2::labs(x = "life.ladder", y = "count")
+
+# Split into train and test data
+df.train <- df.main %>% dplyr::filter(year >= 2005 & year <= 2014)
+df.test <- df.main %>% dplyr::filter(year > 2014 & year < 2017)
+
+# Reduce each set to means
+df.train.mean <- df.train %>% 
+  dplyr::group_by(country) %>%
+  dplyr::summarise_all(funs(mean(., na.rm = TRUE))) %>% 
+  dplyr::select(-country)
+df.test.mean <- df.test %>% 
+  dplyr::group_by(country) %>%
+  dplyr::summarise_all(funs(mean(., na.rm = TRUE))) %>% 
+  dplyr::select(-country)
+```
+
+# EDA / Data Visualization
+```{r}
+df.train.map <- df.train %>% 
+  dplyr::group_by(country) %>%
+  dplyr::summarise_all(funs(mean(., na.rm = TRUE))) %>% 
+  dplyr::select(-year)
+
+# data is from highcharter map library, the grouping for continents were off, but wasn't a problem in overall EDA
+af.data <- list(region='Africa',
+                country=(get_data_from_map(download_map_data('custom/africa')))$name)
+asia.data <- list(region='Asia',
+                  country=(get_data_from_map(download_map_data('custom/asia')))$name)
+eu.data <- list(region='Europe',
+                country=(get_data_from_map(download_map_data('custom/europe')))$name)
+na.data <- list(region='North America',
+                country=(get_data_from_map(download_map_data('custom/north-america')))$name)
+oc.data <- list(region='Oceania',
+                country=(get_data_from_map(download_map_data('custom/oceania')))$name)
+sa.data <- list(region='South America',
+                country=(get_data_from_map(download_map_data('custom/south-america')))$name)
+
+world.data <- Reduce(function(x, y) merge(x, y, all=TRUE), 
+                     list(af.data, asia.data, eu.data, na.data, oc.data, sa.data))
+
+# values that are different were brute force searched and then substituted
+# missing.countries <- (df.train.map[!(df.train.map$country %in% map.data$name),])[,1]
+# excluded.countries <- (map.data[!(map.data$name %in% df.train.map$country),])$name
+df.train.map[df.train.map$country == "Congo (Brazzaville)",1] = 'Democratic Republic of the Congo'
+df.train.map[df.train.map$country == "Congo (Kinshasa)",1] = 'Republic of Congo'
+df.train.map[df.train.map$country == "North Cyprus",1] = 'Northern Cyprus'
+df.train.map[df.train.map$country == "Serbia",1] = 'Republic of Serbia'
+df.train.map[df.train.map$country == "Somaliland region",1] = 'Somaliland'
+df.train.map[df.train.map$country == "Taiwan Province of China",1] = 'Taiwan'
+df.train.map[df.train.map$country == "Tanzania",1] = 'United Republic of Tanzania'
+df.train.map[df.train.map$country == "United States",1] = 'United States of America'
+
+df.final <- merge(df.train.map, world.data, by='country', all.x=TRUE)
+df.final$region <- as.character(df.final$region)
+
+region.happiness <- c()
+for(i in unique(df.final$region)) {
+  summary <- df.final[df.final$region == i,]
+  region.happiness <- c(region.happiness,round(mean(summary$life.ladder,na.rm=TRUE),digits=3))
+}
+
+df.outer <- (data_frame(name = unique(df.final$region),
+                       y = round(region.happiness,digits=3),
+                       drilldown=tolower(unique(df.final$region))))[1:6,]
+df.outer <- df.outer[order(df.outer$y, decreasing=TRUE),]
+
+hc <- highchart() %>% 
+  hc_chart(type='column') %>% 
+  hc_title(text='Drilldown by Life Ladder for Regions') %>% 
+  hc_xAxis(type='category') %>% 
+  hc_legend(enabled=FALSE) %>% 
+  hc_plotOptions(series=list(borderWidth=0,dataLabels=list(enabled=TRUE))) %>%
+  hc_add_series(data=df.outer, name="Life Ladder",colorByPoint=TRUE)
+
+africa <- df.final[df.final$region == 'Africa',][c('country','life.ladder')]
+colnames(africa) <- c('name','value')
+africa <- africa[!is.na(africa$name),]
+africa <- africa[order(africa$value,decreasing=TRUE),]
+africa$value <- round(africa$value, digits=3)
+asia <- df.final[df.final$region == 'Asia',][c('country','life.ladder')]
+colnames(asia) <- c('name','value')
+asia <- asia[!is.na(asia$name),]
+asia <- asia[order(asia$value,decreasing=TRUE),]
+asia$value <- round(asia$value, digits=3)
+europe <- df.final[df.final$region == 'Europe',][c('country','life.ladder')]
+colnames(europe) <- c('name','value')
+europe <- europe[!is.na(europe$name),]
+europe <- europe[order(europe$value,decreasing=TRUE),]
+europe$value <- round(europe$value, digits=3)
+north.america <- df.final[df.final$region == 'North America',][c('country','life.ladder')]
+colnames(north.america) <- c('name','value')
+north.america <- north.america[!is.na(north.america$name),]
+north.america <- north.america[order(north.america$value,decreasing=TRUE),]
+north.america$value <- round(north.america$value, digits=3)
+oceania <- df.final[df.final$region == 'Oceania',][c('country','life.ladder')]
+colnames(oceania) <- c('name','value')
+oceania <- oceania[!is.na(oceania$name),]
+oceania <- oceania[order(oceania$value,decreasing=TRUE),]
+oceania$value <- round(oceania$value, digits=3)
+south.america <- df.final[df.final$region == 'South America',][c('country','life.ladder')]
+colnames(south.america) <- c('name','value')
+south.america <- south.america[!is.na(south.america$name),]
+south.america <- south.america[order(south.america$value,decreasing=TRUE),]
+south.america$value <- round(south.america$value, digits=3)
+
+hc %>%
+  hc_drilldown(allowPointDrilldown = TRUE,
+               series = list(
+                 list(id = 'africa', data = list_parse2(africa)),
+                 list(id = 'asia', data = list_parse2(asia)),
+                 list(id = 'europe', data = list_parse2(europe)),
+                 list(id = 'north america', data = list_parse2(north.america)),
+                 list(id = 'oceania', data = list_parse2(oceania)),
+                 list(id = 'south america', data = list_parse2(south.america))
+                 )
+               )
+
+# due to too many maps, other variables have been exlcuded from this report
+# for other map visualization on other variables that's not life.ladder, see map-visualization.r file
+map.life.ladder <- hcmap("custom/world-robinson-highres", data = df.train.map, value = "life.ladder",
+                         joinBy = c('name','country'), name = 'Life Ladder',
+                         dataLabels = list(enabled = TRUE, format = '{point.name}'),
+                         borderColor = "#000000", borderWidth = 0.1,
+                         tooltip = list(valueDecimals = 3),
+                         nullColor = '#FF0000') %>% 
+                         hc_title(text = 'Life Ladder World Map')
+map.life.ladder
+```
+
+full model: 모든 변수를 다 포함한 모형. 이중 통계적으로 유의미하지 않은 변수를 빼준다.
+``` {r}
+# Initial Linear Model
+lm.train.mean <- lm(life.ladder ~. -year, data = df.train.mean)
+summary(lm.train.mean)
+gvlma::gvlma(lm.train.mean)
+
+# Selecting independent variable that have relation to the dependent variable (stepwise)
+step(lm.train.mean, df.train.mean, direction = "both")
+```
+
+second model: AIC를 고려한 후의 회귀모형
+``` {r}
+# Build new model
+lm.train.step <- lm(life.ladder ~ log.gdp.per.cap + social.support + healthy.life.expectancy.at.birth + 
+                   freedom.to.make.life.choices + perception.of.corruption + 
+                   positive.affect + negative.affect + confidence.in.govt + 
+                   gini.index.past.mean + gini.house.hold.income, data = df.train.mean)
+summary(lm.train.step)
+gvlma::gvlma(lm.train.step)
+
+```
+
+# 통계적으로 유의미하지 않은 변수를 빼준 후의 회귀모형
+``` {r}
+# Removing variables with little impact (healthy.life, gini.index.past.mean)
+lm.train.step2 <- lm(life.ladder ~ log.gdp.per.cap + social.support +
+                    freedom.to.make.life.choices + perception.of.corruption + 
+                    positive.affect + negative.affect + confidence.in.govt + gini.house.hold.income, 
+                    data = df.train.mean)
+summary(lm.train.step2)
+gvlma(lm.train.step2)
+```
+
+
+# 모델 선정: glm Time Series 모델과 비교
+``` {r}
+# Removing healthy.life.expectany.at.birth, gini.index.past.mean, generosity columns from dataset
+df.train.mean2 <- df.train.mean %>% 
+  dplyr::select(-c(healthy.life.expectancy.at.birth, gini.index.past.mean, generosity))
+
+# PQL (Penalized Quasi-Likelihood) <<< this is for one of the models from time series
+# Random Intercept (random = ~1|year)
+glm.train.mean2 <- MASS::glmmPQL(life.ladder ~ log.gdp.per.cap + social.support + freedom.to.make.life.choices + 
+                     perception.of.corruption + positive.affect + negative.affect + 
+                     confidence.in.govt + gini.house.hold.income, ~1 | year, family = Gamma,
+                     data = df.test.mean, verbose = FALSE)
+summary(glm.train.mean2)
+r2glmm::r2beta(glm.train.mean2)
+```
+
+# 모델 비교
+```{r}
+anova(lm.train.mean, lm.train.step, lm.train.step2)
+```
+
+# 이상치 및 다중공선성(Outliers and Multicollinearlity) Test
+``` {r}
+# testing if there are outliers that are influencing the R^2 value
+car::outlierTest(lm.train.step2, data = df.train.mean)
+
+par(mfrow = c(2, 2))
+plot(lm.train.step2)
+par(mfrow = c(1,1))
+# Conclusion : Sri Lanka is an outlier, but not omitted, due to being 1 value out of many
+
+# Correlation plot (visually checking for multicollinearity)
+lm.corr <- cor(df.train.mean2[3:ncol(df.train.mean2)])
+corrplot::corrplot(lm.corr, method = "number")
+```
+
+# 최종모델 해석
+
+**1단계 : 회귀모형은 타당한가?**
+귀무가설 : 회귀모형은 타당하지 않다.
+대립가설 : 회귀모형은 타당하다.
+F-statistic: 98.83 on 8 and 153 DF,  p-value: < 2.2e-16
+결론 : 유의확률이 0.000이므로 유의수준 0.05에서
+회귀모형은 통계적으로 타당하다.
+
+**2단계 : 독립변수는 종속변수에게 영향을 주는가?**
+(조건 : 1단계의 결론이 대립가설이어야 함. 이 회귀모형의 경우 대립가설임.)
+귀무가설 : 독립변수는 종속변수에게 영향을 주지 않는다(beta1 = 0).
+대립가설 : 독립변수는 종속변수에게 영향을 준다(beta1 not equal 0).
+
+                                 Estimate    Std. Error t value Pr(>|t|)  
+    log.gdp.per.cap               0.37435    0.04702   7.961 3.59e-13 ***
+    social.support                1.40026    0.52229   2.681 0.008145 **
+    freedom.to.make.life.choices  0.98169    0.45543   2.156 0.032684 *
+    perception.of.corruption     -1.20868    0.28250  -4.278 3.30e-05 ***
+    positive.affect               3.44207    0.55740   6.175 5.69e-09 ***
+    negative.affect               1.17269    0.60926   1.925 0.056113 .
+    confidence.in.govt           -0.99422    0.30707  -3.238 0.001477 **
+    gini.house.hold.income       -1.54129    0.41282  -3.734 0.000266 ***
+
+결론 : 유의확률이 0.000이므로 유의수준 0.05에서
+모형에 포함된 독립변수들은 종속변수에게 모두 통계적으로 유의한 영향을 주는 것으로 나타났다.
+즉 log.gdp.per.cap, freedom.to.make.life.choices, generosity, perception.of.corruption, confidence.in.govt는 모두 life ladder (행복지수) 에 통계적으로 유의한 영향을 준다.
+
+** 3단계 : 독립변수는 어떠한 영향을 주는가? **
+(조건 : 2단계의 결론이 대립가설이어야 함. 이 회귀모형의 경우대립가설임.)
+
+                                 Estimate
+    log.gdp.per.cap               0.37435
+    social.support                1.40026
+    freedom.to.make.life.choices  0.98169
+    perception.of.corruption     -1.20868
+    positive.affect               3.44207
+    negative.affect               1.17269
+    confidence.in.govt           -0.99422
+    gini.house.hold.income       -1.54129
+
+(다른 독립변수가 모두 고정되어 있을때!!!)
+1) 독립변수인 log.gdp.per.cap 의 기본단위가 1 증가하면, 종속변수인 ladder는 약 0.37435 정도 증가한다. 
+2) 독립변수인 social.support가 1 증가하면, 종속변수인 ladder는 약 1.40026 증가한다.
+3) 독립변수인 freedom.to.make.life.choices가 1 증가하면, 종속변수인 ladder는 약 0.98169 증가한다.
+4) 독립변수인 perception.of.corruption가 1 증가하면, 종속변수인 ladder는 약 1.20868 감소한다.
+5) 독립변수인 positive.affect가 1 증가하면, 종속변수인 ladder는 약 3.44207 증가한다. 
+6) 독립변수인 negative.affect가 1 증가하면, 종속변수인 ladder는 약 1.17269 증가한다.
+6) 독립변수인 confidence.in.govt 가 1 증가하면, 종속변수인 ladder는 약 0.99422 감소한다.
+7) 독립변수인 gini.house.hold.income가 1 증가하면, 종속변수인 ladder는 약 1.54129 감소한다.
+
+** 4단계 : 회귀모형의 설명력 = 독립변수의 설명력 **
+Multiple R-squared:  0.8379,
+R^2 = SSR / SST : 결정계수(Coefficient of Determination) = 0.8379
+회귀모형의 설명력은 약 83.79%
+또는 독립변수들의 설명력은 약 83.79%
+종속변수의 다름이 100%라고 하면 독립변수가 종속변수의 다름을
+약 83.79% 설명하고 있다(독립변수 때문에 종속변수의 다름이 약 83.79%
+발생했다)
+
+** 세부분석 **
+# 다중공선성(Multicolinearity) : 독립변수들 간의 상관관계를 파악함
+VIF(Variation Inflation Factor) = 분산팽창인자 = 분산팽창요인
+VIF 값이 10 이상이면 독립변수들 간에 다중공선성(선형관계)이 존재한다고 파악 -> 회귀분석 결과 해석 못 함.
+
+```{r}
+car::vif(lm.train.step2)
+```
+
+3개의 VIF 값이 10 이상인 값이 하나도 없으므로
+독립변수들 간에 다중공선성은 존재하지 않는다.
+
+**영향력이 가장 큰 독립변수는?**
+독립변수의 단위가 모두 같다면, 회귀계수의 절대값이 가장 큰 것이 가장 영향력이 크다.
+독립변수의 단위가 다르면, 표준화된 회귀계수의 절대값이 가장 큰 것이 가장 영향력이 크다.
+lm.beta::lm.beta(lm.result) 를 사용해서 표준화된 회귀계수 값을 구한다. lm.beta는 표준화된 회귀계수를 구해준다.
+
+```{r}
+lm.beta::lm.beta(lm.train.step2)
+```
+
+                 (Intercept)              log.gdp.per.cap               social.support freedom.to.make.life.choices 
+                  0.00000000                   0.41760768                   0.16409732                   0.10531958 
+    perception.of.corruption              positive.affect              negative.affect           confidence.in.govt 
+                 -0.18943523                   0.31779551                   0.08004477                  -0.13943904 
+      gini.house.hold.income 
+                 -0.13148714                   
+
+결론 : life.ladder (행복지수)에 log.gdp.per.cap (beta = 0.5726012)가 가장 영향력이 크고,
+그 다음으로 positive.affect(beta=0.31779551), perception.of.corruption (beta = -0.189435), social support (beta=0.16409), confidnece in government (beta = -0.13943904), gini.house.hold.income (beta = -0.13148), freedom.to.make.life.choices (beta=0.1053), negative.affect (beta=0.0800), generosity (beta=0.0615), 순서로 나타났다.
+
+# 잔차 분석(Residual Analysis)
+회귀분석을 위한 가정(Assumption)들은 만족하는지를 확인
+
+## (1) 정규성(Normality)
+종속변수가 정규분포를 따른다면,
+잔차(residual value) 또한 정규분포를 따르며, 평균은 0 이다.
+i. Normal Q-Q plot :
+  x축은 잔차의 사분위수(Quartiles),
+  y축은 잔차의 표준화.
+  정규성 가정을 만족한다면 Normal Q-Q plot는 직선에 가까운 그래프가 되어야 한다.
+  직선을 벗어나는 점들이 많으면 정규성 가정이 깨질 가능성이 높다.
+  
+```{r}
+qqnorm(lm.train.step2$residuals)
+qqline(lm.train.step2$residuals)
+
+# Testing for autocorrelation of errors
+olsrr::ols_test_correlation(lm.train.step2) # 0.995226
+```
+
+ii. Shapiro-Wilk test:
+  잔차에 대해서 정규성 검정을 한다.
+잔차는 정규성 검정을 통과한다: p-value는 0.4368, 즉 귀무가설: 잔차는 정규분포이다.
+```{r}
+# method 1: Testing if residuals are normally distributed
+shapiro.test(lm.train.step2$residuals)
+
+# method 2: Testing if residuals are normally distributed
+# olsrr::ols_test_normality(lm.train.step2)
+qqp(lm.train.step2, data = df.train.mean2)
+```
+
+## (2) 등분산성 (Heteroscedasticity)
+  x축 : 독립변수 또는 종속변수의 추정치
+  y축 : 잔차 또는 표준화 잔차
+분산이 일정하다는 가정을 만족한다면
+잔차의 값이 0을 기준으로 위/아래로 랜덤random)하게 분포되어 있어야 한다.
+일정한 패턴을 가지면 등분산성은 깨진다.
+
+p-value가 0.7112, 즉 0.05보다 크다. 귀무가설: 잔차의 값이 0을 기준으로 위/아래로 랜덤random)하게 분포되어 있다. 등분산성 조건 만족.
+
+```{r}
+# Check for homoscedasticity
+car::ncvTest(lm.train.step2)
+spreadLevelPlot(lm.train.step2)
+# Conclusion : No change required
+
+```
+
+## (3) 독립성(Independence)
+종속변수는 서로 독립적이어야 한다. 
+관찰값들 사이에 상관관계가 있을 경우,
+오차항들이 서로 독립이라는 조건을 검토해 보아야 한다. 
+만일 오차항들이 서로 독립이라면, 잔차들은 무작위로 흩어져 있을 것이고, 
+그렇지 않다면 무작위로 흩어져 있지 않아 오차항들 사이에 상관관계가 있다고 할 수 있을 것이다. 
+  i. 더빈-왓슨 통계량(Durbin-Watson Statistics)
+  오차항의 독립성을 평가하는 한 측도로 더빈-왓슨(Durbin-Watson) 통계량이 있다. 
+  DW 통계량은 잔차들의 상관계수를 측정함
+  DW 통계량이 2에 가까우면 인접 오차항들 사이에 상관관계가 없는 것을 의미하며, 
+  DW 통계량이 4에 가까우면 음의 상관관계가 있고
+  DW 통계량이 0에 가까우면 양의 상관관계가 있는 것으로 평가한다.
+        귀무가설 : 각 오차들은 서로 독립이다.
+        대립가설 : 각 오차들은 서로 독립이 아니다.
+
+p-value가 0.4426, 즉 0.05보다 크다. 귀무가설: 각 오차들은 서로 독립이다. 독립성 조건 만족.
+```{r}       
+lmtest::dwtest(lm.train.step2)
+```
+
+## (4) 선형성(Linearity)
+종속변수와 독립변수가 선형관계에 있다면
+잔차와 독립변수 사이에 어떤 체계적인 관계가 있으면 안 된다. 
+
+```{r}
+par(mfrow = c(2, 2))
+plot(lm.train.step2)
+```
+
+# 5단계 : 회귀모형을 이용한 예측
+
+                                 Estimate
+    log.gdp.per.cap               0.37435
+    social.support                1.40026
+    freedom.to.make.life.choices  0.98169
+    perception.of.corruption     -1.20868
+    positive.affect               3.44207
+    negative.affect               1.17269
+    confidence.in.govt           -0.99422
+    gini.house.hold.income       -1.54129
+    
+life.ladder = (0.37435 log.gdp.per.cap) + (0.98169 freedom.to.make.life.choices) + (0.43866 generosity) + (-1.20868 perception.of.corruption) + (-0.99422 confidence.in.govt) + (1.40026 social.support) + (3.44207 positive.affect) + (-1.54129 gini.house.hold.income) + (1.17269 negative.affect) + (1.40026 social.support)
+
+# Test Data 예측 확인결과
+NA값 제외 후 총 Data Point : 148
+예측안에 들어가는 결과 : 148
+결론 : 모든 Test Data는 Train Data로 만들어진 Final Linear Model 예측안에 들어간다
+```{r}
+# matching train colnames to test colnames
+train.colnames <- colnames(df.train.mean2)
+test.colnames <- colnames(df.test.mean)
+predict.colnames <- test.colnames[train.colnames %in% test.colnames]
+
+pred_probs <- predict(lm.train.step2, newdata = df.test.mean[, predict.colnames], interval = "predict", type = "response")
+
+dt.pred_prob <- as.data.table(pred_probs)
+dt.pred_prob$result <- ifelse((dt.pred_prob$lwr <= dt.pred_prob$fit) & (dt.pred_prob$upr >= dt.pred_prob$fit), 1, 0)
+table(dt.pred_prob$result)
+
+# MSE of our model
+mean(lm.train.step2$residuals^2)
+```
+
+
+
+
+
