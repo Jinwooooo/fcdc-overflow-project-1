@@ -55,9 +55,9 @@ ___
 
 ### 자세한 보고 (Elaborated Report) :
 
-<https://github.com/Jinwooooo/fcdc-overflow-project-1/blob/master/report.htm>
+<https://rawgit.com/Jinwooooo/fcdc-overflow-project-1/master/report.html>
 
-* 꼭 다른 이름으로 저장 후 사용 하셔야 보고 읽기 가능합니다 (Must save this file on your local, to see the report in web)
+* 파일 따로 눌루시면 webview로 실행 안됩니다, 여기있는 url 사용해주세요~ (to see report in webview, use this url)
 ___
 ## 도구 (Tools)
 * RStudio
