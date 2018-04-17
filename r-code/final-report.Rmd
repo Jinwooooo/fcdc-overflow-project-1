@@ -146,6 +146,7 @@ df.test.mean <- df.test %>%
 
 # EDA / Data Visualization
 ```{r}
+# extracting required data for data visualization
 df.train.map <- df.train %>% 
   dplyr::group_by(country) %>%
   dplyr::summarise_all(funs(mean(., na.rm = TRUE))) %>% 
@@ -180,20 +181,22 @@ df.train.map[df.train.map$country == "Taiwan Province of China",1] = 'Taiwan'
 df.train.map[df.train.map$country == "Tanzania",1] = 'United Republic of Tanzania'
 df.train.map[df.train.map$country == "United States",1] = 'United States of America'
 
+# adding region column according to country
 df.final <- merge(df.train.map, world.data, by='country', all.x=TRUE)
 df.final$region <- as.character(df.final$region)
 
+# adding mean life ladder value according to region
 region.happiness <- c()
 for(i in unique(df.final$region)) {
   summary <- df.final[df.final$region == i,]
   region.happiness <- c(region.happiness,round(mean(summary$life.ladder,na.rm=TRUE),digits=3))
 }
-
 df.outer <- (data_frame(name = unique(df.final$region),
                        y = round(region.happiness,digits=3),
                        drilldown=tolower(unique(df.final$region))))[1:6,]
 df.outer <- df.outer[order(df.outer$y, decreasing=TRUE),]
 
+# base bargraph (outer bargraph)
 hc <- highchart() %>% 
   hc_chart(type='column') %>% 
   hc_title(text='Drilldown by Life Ladder for Regions') %>% 
@@ -202,6 +205,8 @@ hc <- highchart() %>%
   hc_plotOptions(series=list(borderWidth=0,dataLabels=list(enabled=TRUE))) %>%
   hc_add_series(data=df.outer, name="Life Ladder",colorByPoint=TRUE)
 
+# in order to add into drilldown, each data must be separated by continent and all country
+# and life.ladder values are intact
 africa <- df.final[df.final$region == 'Africa',][c('country','life.ladder')]
 colnames(africa) <- c('name','value')
 africa <- africa[!is.na(africa$name),]
@@ -233,6 +238,7 @@ south.america <- south.america[!is.na(south.america$name),]
 south.america <- south.america[order(south.america$value,decreasing=TRUE),]
 south.america$value <- round(south.america$value, digits=3)
 
+# adding drilldown
 hc %>%
   hc_drilldown(allowPointDrilldown = TRUE,
                series = list(
@@ -370,23 +376,22 @@ F-statistic: 98.83 on 8 and 153 DF,  p-value: < 2.2e-16
     gini.house.hold.income       -1.54129
 
 (다른 독립변수가 모두 고정되어 있을때!!!)
-1) 독립변수인 log.gdp.per.cap 의 기본단위가 1 증가하면, 종속변수인 ladder는 약 0.37435 정도 증가한다. 
-2) 독립변수인 social.support가 1 증가하면, 종속변수인 ladder는 약 1.40026 증가한다.
-3) 독립변수인 freedom.to.make.life.choices가 1 증가하면, 종속변수인 ladder는 약 0.98169 증가한다.
-4) 독립변수인 perception.of.corruption가 1 증가하면, 종속변수인 ladder는 약 1.20868 감소한다.
-5) 독립변수인 positive.affect가 1 증가하면, 종속변수인 ladder는 약 3.44207 증가한다. 
-6) 독립변수인 negative.affect가 1 증가하면, 종속변수인 ladder는 약 1.17269 증가한다.
-6) 독립변수인 confidence.in.govt 가 1 증가하면, 종속변수인 ladder는 약 0.99422 감소한다.
-7) 독립변수인 gini.house.hold.income가 1 증가하면, 종속변수인 ladder는 약 1.54129 감소한다.
+
+1. 독립변수인 log.gdp.per.cap 의 기본단위가 1 증가하면, 종속변수인 ladder는 약 0.37435 정도 증가한다. 
+2. 독립변수인 social.support가 1 증가하면, 종속변수인 ladder는 약 1.40026 증가한다.
+3. 독립변수인 freedom.to.make.life.choices가 1 증가하면, 종속변수인 ladder는 약 0.98169 증가한다.
+4. 독립변수인 perception.of.corruption가 1 증가하면, 종속변수인 ladder는 약 1.20868 감소한다.
+5. 독립변수인 positive.affect가 1 증가하면, 종속변수인 ladder는 약 3.44207 증가한다. 
+6. 독립변수인 negative.affect가 1 증가하면, 종속변수인 ladder는 약 1.17269 증가한다.
+7. 독립변수인 confidence.in.govt 가 1 증가하면, 종속변수인 ladder는 약 0.99422 감소한다.
+8. 독립변수인 gini.house.hold.income가 1 증가하면, 종속변수인 ladder는 약 1.54129 감소한다.
 
 ** 4단계 : 회귀모형의 설명력 = 독립변수의 설명력 **
 Multiple R-squared:  0.8379,
 R^2 = SSR / SST : 결정계수(Coefficient of Determination) = 0.8379
-회귀모형의 설명력은 약 83.79%
-또는 독립변수들의 설명력은 약 83.79%
-종속변수의 다름이 100%라고 하면 독립변수가 종속변수의 다름을
-약 83.79% 설명하고 있다(독립변수 때문에 종속변수의 다름이 약 83.79%
-발생했다)
+* 회귀모형의 설명력은 약 83.79%
+* 또는 독립변수들의 설명력은 약 83.79%
+* 종속변수의 다름이 100%라고 하면 독립변수가 종속변수의 다름을 약 83.79% 설명하고 있다(독립변수 때문에 종속변수의 다름이 약 83.79% 발생했다)
 
 ** 세부분석 **
 # 다중공선성(Multicolinearity) : 독립변수들 간의 상관관계를 파악함
@@ -521,8 +526,10 @@ train.colnames <- colnames(df.train.mean2)
 test.colnames <- colnames(df.test.mean)
 predict.colnames <- test.colnames[train.colnames %in% test.colnames]
 
+# creating the upper and lower bound for the predicting data
 pred_probs <- predict(lm.train.step2, newdata = df.test.mean[, predict.colnames], interval = "predict", type = "response")
 
+# testing if it goes inside the boundaries (1 if it does, 0 if it doesn't)
 dt.pred_prob <- as.data.table(pred_probs)
 dt.pred_prob$result <- ifelse((dt.pred_prob$lwr <= dt.pred_prob$fit) & (dt.pred_prob$upr >= dt.pred_prob$fit), 1, 0)
 table(dt.pred_prob$result)
